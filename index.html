@@ -25,6 +25,7 @@
     <span class="brand"><img src="logo.svg" alt="">FitSmarter</span>
     <span class="sp"></span>
     <button class="pill ghost sm" id="installBtn" hidden type="button">Install</button>
+    <button class="pill ghost sm" data-tour type="button" aria-label="Quick guide">?</button>
     <a href="#me" class="avatar" id="topAvatar" aria-label="Profile"></a>
   </div></header>
 
@@ -66,6 +67,7 @@
       <div class="card" style="display:flex;gap:16px;align-items:center"><span class="avatar lg" id="meAvatar"></span><div style="min-width:0"><h1 id="t-me" style="font-size:28px"></h1><small class="muted" id="meSince"></small></div></div>
       <div class="tiles" id="meTiles"></div>
       <div class="card"><h3>Badges <span class="r" id="badgeCount"></span></h3><div class="badges" id="badges"></div></div>
+      <div class="card"><h3>Strength medals <span class="r">vs. people like you</span></h3><div id="strength"></div></div>
       <div class="card"><h3>Your activities</h3><div class="list" id="history"></div></div>
       <div class="card"><h3>Goals &amp; profile</h3>
         <form id="profileForm" style="display:flex;flex-direction:column;gap:12px">
@@ -74,7 +76,10 @@
             <div class="field"><label for="pMove">Move goal (kcal/day)</label><input id="pMove" type="number" min="100" max="3000" step="10" inputmode="numeric"></div>
             <div class="field"><label for="pEx">Exercise goal (min/day)</label><input id="pEx" type="number" min="5" max="300" step="5" inputmode="numeric"></div>
             <div class="field"><label for="pKm">Distance goal (km/day)</label><input id="pKm" type="number" min="0.5" max="100" step="0.5" inputmode="decimal"></div>
-            <div class="field"><label for="pW">Weight (kg, for calories)</label><input id="pW" type="number" min="30" max="250" step="1" inputmode="numeric"></div>
+            <div class="field"><label for="pW">Weight (kg)</label><input id="pW" type="number" min="30" max="250" step="1" inputmode="numeric"></div>
+            <div class="field"><label for="pSex">Sex (for strength standards)</label><select id="pSex"><option value="">Choose…</option><option value="m">Male</option><option value="f">Female</option></select></div>
+            <div class="field"><label for="pH">Height (cm)</label><input id="pH" type="number" min="120" max="230" step="1" inputmode="numeric"></div>
+            <div class="field"><label for="pBY">Birth year</label><input id="pBY" type="number" min="1930" max="2020" step="1" inputmode="numeric"></div>
           </div>
           <button class="pill primary block" type="submit">Save</button>
         </form>

@@ -4,6 +4,8 @@
 // Activities are written to the user's own collection and copied into the feed of every group
 // they belong to, so a group's feed and leaderboard are a single query.
 
+import { EXERCISES, e1rm, percentile, medalFor } from "./strength.js";
+
 export const TYPES = {
   run:   { n: "Run",        e: "🏃", met: 9.8, gps: true },
   walk:  { n: "Walk",       e: "🚶", met: 3.8, gps: true },
@@ -42,17 +44,30 @@ export function decodePath(s) {
 }
 
 /* ===================== demo store ===================== */
-const LS = "fitsmarter-demo-v1";
+const LS = "fitsmarter-demo-v2";
 const DEMO_FRIENDS = [
-  { uid: "f-ana", name: "Ana Weber", w: 60, types: ["run", "yoga", "hiit"] },
-  { uid: "f-luca", name: "Luca Rossi", w: 78, types: ["ride", "gym", "run"] },
-  { uid: "f-mia", name: "Mia Fischer", w: 58, types: ["swim", "walk", "yoga"] },
-  { uid: "f-jonas", name: "Jonas Klein", w: 82, types: ["gym", "ball", "hiit"] },
+  { uid: "f-ana", name: "Ana Weber", w: 60, sex: "f", height: 168, birthYear: 2000, str: 1.15, types: ["run", "gym", "yoga"] },
+  { uid: "f-luca", name: "Luca Rossi", w: 78, sex: "m", height: 182, birthYear: 1999, str: 1.0, types: ["ride", "gym", "run"] },
+  { uid: "f-mia", name: "Mia Fischer", w: 58, sex: "f", height: 162, birthYear: 2002, str: 0.8, types: ["swim", "gym", "yoga"] },
+  { uid: "f-jonas", name: "Jonas Klein", w: 82, sex: "m", height: 179, birthYear: 1998, str: 1.35, types: ["gym", "ball", "hiit"] },
 ];
 function demoRoute(seed, km) {
   // a loop around Stuttgart's Schlossgarten, slightly different per activity
   const c = [48.7840 + (seed % 7) * 0.002, 9.1880 + (seed % 5) * 0.003], n = 40, r = 0.004 * Math.sqrt(km);
   return encodePath(Array.from({ length: n + 1 }, (_, i) => { const t = i / n * Math.PI * 2; return [c[0] + Math.sin(t) * r * (1 + 0.15 * Math.sin(t * 3 + seed)), c[1] + Math.cos(t) * r * 1.5]; }));
+}
+
+// a few realistic lifts per gym session, scaled by each friend's strength level
+function demoLifts(f, seed) {
+  const prof = { sex: f.sex, weight: f.w, height: f.height, birthYear: f.birthYear };
+  const plan = [["bench", "squat", "row"], ["deadlift", "ohp", "pullup"], ["squat", "bench", "curl"]][seed % 3];
+  return plan.map((ex, i) => {
+    const X = EXERCISES[ex], base = (f.sex === "f" ? X.f : X.m)[2] * f.str * (1 + ((seed + i) % 5) * 0.02);
+    const sets = X.kind === "r" ? [{ w: 0, r: Math.max(1, Math.round(base * Math.pow(f.str, 2))) }]
+      : [8, 6, 5].map(r => ({ w: Math.round(base * f.w * (X.kind === "d" ? 1 : 1) * 0.8 / 2.5) * 2.5 / (1 + r / 30) * 1.15, r })).map(s => ({ w: Math.round(s.w / 2.5) * 2.5, r: s.r }));
+    const best = Math.max(...sets.map(s => X.kind === "r" ? s.r : e1rm(s.w, s.r))), pct = Math.round(percentile(ex, best, prof) * 10) / 10;
+    return { ex, sets, pct, medal: medalFor(pct)?.id || "" };
+  });
 }
 
 export class LocalStore {
@@ -75,6 +90,7 @@ export class LocalStore {
       const durationS = (25 + ((d * 13 + k * 7) % 50)) * 60, km = gps ? +(durationS / 60 / (type === "ride" ? 2.4 : type === "walk" ? 11 : 5.6)).toFixed(2) : 0;
       const a = { id: `d${k}-${d}`, uid: f.uid, name: f.name, type, start, durationS, distanceM: Math.round(km * 1000), route: gps ? demoRoute(k * 31 + d, km) : "", title: "", kudos: d % 2 ? ["me"] : [] };
       Object.assign(a, score(a, f.w));
+      if (type === "gym") a.lifts = demoLifts(f, d + k);
       db.activities.push(a);
       k++;
     }
