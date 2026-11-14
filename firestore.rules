@@ -1,0 +1,45 @@
+rules_version = '2';
+// FitSmarter security rules: paste into Firebase console → Firestore → Rules → Publish.
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function signedIn() { return request.auth != null; }
+    function isMe(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // profiles: anyone signed in can read names; only you can write yours
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow write: if isMe(uid);
+      match /activities/{id} {
+        allow read, write: if isMe(uid);
+      }
+    }
+
+    match /groups/{gid} {
+      function members() { return get(/databases/$(db)/documents/groups/$(gid)).data.members; }
+      // knowing the 6-letter code is the invitation
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.owner == request.auth.uid
+        && request.resource.data.members == [request.auth.uid]
+        && request.resource.data.name is string && request.resource.data.name.size() <= 40;
+      // you can only add or remove yourself
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
+        && request.resource.data.members.toSet().difference(resource.data.members.toSet()).hasOnly([request.auth.uid])
+        && resource.data.members.toSet().difference(request.resource.data.members.toSet()).hasOnly([request.auth.uid]);
+
+      match /feed/{id} {
+        allow read: if signedIn() && request.auth.uid in members();
+        allow create: if signedIn() && request.auth.uid in members()
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.points is int && request.resource.data.points <= 400
+          && request.resource.data.durationS is int && request.resource.data.durationS <= 86400;
+        // other members can only give or take back kudos
+        allow update: if signedIn() && request.auth.uid in members()
+          && (resource.data.uid == request.auth.uid
+              || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['kudos']));
+        allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+      }
+    }
+  }
+}
