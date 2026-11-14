@@ -1,5 +1,5 @@
 // FitSmarter – offline cache. App files: network first; fonts, Leaflet and Firebase SDK: cache first.
-const CACHE = "fitsmarter-v2";
+const CACHE = "fitsmarter-v3";
 const CORE = ["./", "./index.html", "./styles.css", "./app.js", "./store.js", "./strength.js", "./firebase-config.js", "./manifest.webmanifest", "./logo.svg", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE))); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

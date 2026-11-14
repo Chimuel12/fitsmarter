@@ -1,5 +1,7 @@
 # Connect FitSmarter to Firebase (free, ~5 minutes)
 
+> **Already done for the live app.** It uses Firebase project `fitsmarter-z2bit`: Google and email sign-in, Firestore in `eur3`, and the rules from `firestore.rules`. The steps below are only needed for your own copy.
+
 Until this is done the app runs in **demo mode**: sample friends, data only on your device.
 After it, everyone signs in with Google (or email) and groups, feeds and leaderboards are shared live.
 
