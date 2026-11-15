@@ -34,6 +34,7 @@ const BASE = {
   pushup:   { m: [8, 15, 28, 42, 55], fem: 0.45, reps: true, lever: -0.2 },
   dip:      { m: [3, 8, 15, 24, 32],  fem: 0.4,  reps: true, lever: -0.2 },
   legraise: { m: [3, 6, 12, 18, 25],  fem: 0.7,  reps: true, lever: 0 },
+  bwlegs:   { m: [10, 15, 25, 35, 50], fem: 0.85, reps: true, lever: 0 },
 };
 // body-weight scaling from the bench-press reference table (65–100 kg), smooth power law outside
 const BW = [[65, 0.83], [75, 0.948], [80, 1], [90, 1.089], [100, 1.17]];
@@ -52,103 +53,22 @@ export const MUSCLES = {
 };
 
 /* ---------- exercise library ----------
-   id: [name, equipment, line, base lift, ratio, primary muscles, secondary muscles, animation, per-hand]
-   equipment: bb barbell · db dumbbell · sel selectorized machine · pl plate-loaded · cab cable · bw bodyweight
-   lines: Technogym Selection (700/900), Technogym Pure Strength, Technogym Kinesis / cable stations, free weights */
-const L = { fw: "Free weights", sel: "Technogym Selection", ps: "Technogym Pure Strength", cab: "Technogym cable station", bw: "Bodyweight" };
-const X = (n, eq, line, base, k, mus, sec, anim, hand = false) => ({ n, eq, line: L[line], base, k, mus, sec, anim, hand });
-export const EX = {
-  // chest
-  bench:        X("Flat bench press", "bb", "fw", "bench", 1, ["chest"], ["triceps", "shoulders"], "bench"),
-  inclinebench: X("Incline bench press", "bb", "fw", "bench", 0.84, ["chest"], ["shoulders", "triceps"], "inclinebench"),
-  dbbench:      X("Dumbbell bench press", "db", "fw", "bench", 0.37, ["chest"], ["triceps", "shoulders"], "bench", true),
-  inclinedb:    X("Incline dumbbell press", "db", "fw", "bench", 0.33, ["chest"], ["shoulders", "triceps"], "inclinebench", true),
-  dbfly:        X("Dumbbell fly", "db", "fw", "bench", 0.16, ["chest"], ["shoulders"], "fly", true),
-  selchest:     X("Chest Press", "sel", "sel", "bench", 1.0, ["chest"], ["triceps", "shoulders"], "chestpress"),
-  selpec:       X("Pectoral (pec deck)", "sel", "sel", "bench", 0.62, ["chest"], ["shoulders"], "pecdeck"),
-  pschest:      X("Chest Press", "pl", "ps", "bench", 1.05, ["chest"], ["triceps", "shoulders"], "chestpress"),
-  psincline:    X("Incline Chest Press", "pl", "ps", "bench", 0.9, ["chest"], ["shoulders", "triceps"], "chestpress"),
-  pswide:       X("Wide Chest Press", "pl", "ps", "bench", 1.0, ["chest"], ["shoulders"], "chestpress"),
-  cablecross:   X("Cable crossover", "cab", "cab", "bench", 0.22, ["chest"], ["shoulders"], "pecdeck", true),
-  pushup:       X("Push-ups", "bw", "bw", "pushup", 1, ["chest"], ["triceps", "shoulders"], "pushup"),
-  dip:          X("Dips", "bw", "bw", "dip", 1, ["triceps", "chest"], ["shoulders"], "dip"),
-  // back
-  deadlift:     X("Deadlift", "bb", "fw", "deadlift", 1, ["lowerback", "glutes", "hamstrings"], ["traps", "quads", "forearms"], "deadlift"),
-  sumodl:       X("Sumo deadlift", "bb", "fw", "deadlift", 1, ["glutes", "adductors", "lowerback"], ["quads", "traps"], "deadlift"),
-  row:          X("Barbell row", "bb", "fw", "row", 1, ["lats"], ["biceps", "traps", "lowerback"], "row"),
-  dbrow:        X("One-arm dumbbell row", "db", "fw", "row", 0.48, ["lats"], ["biceps", "traps"], "row", true),
-  pullup:       X("Pull-ups", "bw", "bw", "pullup", 1, ["lats"], ["biceps", "forearms"], "pullup"),
-  chinup:       X("Chin-ups", "bw", "bw", "pullup", 1.15, ["lats", "biceps"], ["forearms"], "pullup"),
-  pulldown:     X("Lat Machine (pulldown)", "sel", "sel", "row", 1.0, ["lats"], ["biceps"], "pulldown"),
-  selvt:        X("Vertical Traction", "sel", "sel", "row", 0.95, ["lats"], ["biceps"], "pulldown"),
-  sellowrow:    X("Low Row", "sel", "sel", "row", 1.05, ["lats"], ["traps", "biceps"], "seatedrow"),
-  selupper:     X("Upper Back", "sel", "sel", "row", 0.9, ["traps", "lats"], ["shoulders"], "seatedrow"),
-  psrow:        X("Row", "pl", "ps", "row", 1.1, ["lats"], ["traps", "biceps"], "seatedrow"),
-  pslowrow:     X("Low Row", "pl", "ps", "row", 1.1, ["lats"], ["traps", "biceps"], "seatedrow"),
-  pstbar:       X("T-Bar Row", "pl", "ps", "row", 1.0, ["lats", "traps"], ["biceps", "lowerback"], "row"),
-  pspulldown:   X("Pulldown", "pl", "ps", "row", 1.05, ["lats"], ["biceps"], "pulldown"),
-  pspullover:   X("Pullover", "pl", "ps", "row", 0.7, ["lats"], ["chest"], "pullover"),
-  psdeadlift:   X("Deadlift", "pl", "ps", "deadlift", 1.0, ["lowerback", "glutes", "hamstrings"], ["traps", "quads"], "deadlift"),
-  cablerow:     X("Seated cable row", "cab", "cab", "row", 1.0, ["lats"], ["biceps", "traps"], "seatedrow"),
-  facepull:     X("Face pull", "cab", "cab", "curl", 0.8, ["shoulders", "traps"], [], "seatedrow"),
-  shrug:        X("Barbell shrug", "bb", "fw", "deadlift", 0.8, ["traps"], ["forearms"], "shrug"),
-  selback:      X("Lower Back", "sel", "sel", "deadlift", 0.45, ["lowerback"], ["glutes"], "backext"),
-  // shoulders
-  ohp:          X("Overhead press", "bb", "fw", "ohp", 1, ["shoulders"], ["triceps"], "ohp"),
-  dbohp:        X("Seated dumbbell press", "db", "fw", "ohp", 0.42, ["shoulders"], ["triceps"], "ohp", true),
-  lateral:      X("Lateral raise", "db", "fw", "curl", 0.3, ["shoulders"], [], "raise", true),
-  selshoulder:  X("Shoulder Press", "sel", "sel", "ohp", 1.15, ["shoulders"], ["triceps"], "ohp"),
-  selrear:      X("Rear Delt", "sel", "sel", "curl", 0.75, ["shoulders"], ["traps"], "seatedrow"),
-  psshoulder:   X("Shoulder Press", "pl", "ps", "ohp", 1.2, ["shoulders"], ["triceps"], "ohp"),
-  cablelateral: X("Cable lateral raise", "cab", "cab", "curl", 0.2, ["shoulders"], [], "raise", true),
-  // arms
-  curl:         X("Barbell curl", "bb", "fw", "curl", 1, ["biceps"], ["forearms"], "curl"),
-  dbcurl:       X("Dumbbell curl", "db", "fw", "curl", 0.45, ["biceps"], ["forearms"], "curl", true),
-  hammer:       X("Hammer curl", "db", "fw", "curl", 0.48, ["biceps", "forearms"], [], "curl", true),
-  selcurl:      X("Arm Curl", "sel", "sel", "curl", 1.1, ["biceps"], [], "curl"),
-  psbiceps:     X("Biceps", "pl", "ps", "curl", 1.15, ["biceps"], [], "curl"),
-  cablecurl:    X("Cable curl", "cab", "cab", "curl", 0.9, ["biceps"], ["forearms"], "curl"),
-  skull:        X("Skull crusher", "bb", "fw", "curl", 0.95, ["triceps"], [], "skull"),
-  pushdown:     X("Triceps pushdown", "cab", "cab", "curl", 1.0, ["triceps"], [], "pushdown"),
-  selext:       X("Arm Extension", "sel", "sel", "curl", 1.2, ["triceps"], [], "pushdown"),
-  psdip:        X("Seated Dip", "pl", "ps", "bench", 1.2, ["triceps"], ["chest"], "pushdown"),
-  // legs
-  squat:        X("Back squat", "bb", "fw", "squat", 1, ["quads", "glutes"], ["adductors", "lowerback"], "squat"),
-  frontsquat:   X("Front squat", "bb", "fw", "squat", 0.8, ["quads"], ["glutes", "abs"], "squat"),
-  lunge:        X("Dumbbell lunge", "db", "fw", "squat", 0.25, ["quads", "glutes"], ["hamstrings"], "lunge", true),
-  bulgarian:    X("Bulgarian split squat", "db", "fw", "squat", 0.24, ["quads", "glutes"], [], "lunge", true),
-  rdl:          X("Romanian deadlift", "bb", "fw", "deadlift", 0.75, ["hamstrings", "glutes"], ["lowerback"], "deadlift"),
-  hipthrust:    X("Barbell hip thrust", "bb", "fw", "squat", 1.1, ["glutes"], ["hamstrings"], "hipthrust"),
-  legpress:     X("Leg Press", "sel", "sel", "squat", 1.9, ["quads", "glutes"], ["hamstrings"], "legpress"),
-  legext:       X("Leg Extension", "sel", "sel", "squat", 0.6, ["quads"], [], "legext"),
-  legcurl:      X("Leg Curl (seated)", "sel", "sel", "squat", 0.5, ["hamstrings"], ["calves"], "legcurl"),
-  pronecurl:    X("Prone Leg Curl", "sel", "sel", "squat", 0.4, ["hamstrings"], [], "legcurl"),
-  abductor:     X("Abductor", "sel", "sel", "squat", 0.75, ["glutes"], [], "abduct"),
-  adductor:     X("Adductor", "sel", "sel", "squat", 0.7, ["adductors"], [], "abduct"),
-  selglute:     X("Glute", "sel", "sel", "squat", 0.5, ["glutes"], ["hamstrings"], "rearkick"),
-  selcalf:      X("Calf", "sel", "sel", "squat", 0.9, ["calves"], [], "calf"),
-  pslegpress:   X("Leg Press", "pl", "ps", "squat", 2.2, ["quads", "glutes"], ["hamstrings"], "legpress"),
-  pslinear:     X("Linear Leg Press", "pl", "ps", "squat", 2.0, ["quads", "glutes"], ["hamstrings"], "legpress"),
-  pshack:       X("Hack Squat", "pl", "ps", "squat", 1.0, ["quads"], ["glutes"], "squat"),
-  psbelt:       X("Belt Squat", "pl", "ps", "squat", 1.0, ["quads", "glutes"], ["adductors"], "squat"),
-  pship:        X("Hip Thrust", "pl", "ps", "squat", 1.2, ["glutes"], ["hamstrings"], "hipthrust"),
-  pslegext:     X("Leg Extension", "pl", "ps", "squat", 0.6, ["quads"], [], "legext"),
-  pslegcurl:    X("Standing Leg Curl", "pl", "ps", "squat", 0.3, ["hamstrings"], [], "standcurl"),
-  psabduct:     X("Standing Abductor", "pl", "ps", "squat", 0.5, ["glutes"], [], "abduct"),
-  pskick:       X("Rear Kick", "pl", "ps", "squat", 0.4, ["glutes"], ["hamstrings"], "rearkick"),
-  pscalf:       X("Calf", "pl", "ps", "squat", 1.0, ["calves"], [], "calf"),
-  psseatcalf:   X("Seated Calf", "pl", "ps", "squat", 0.7, ["calves"], [], "seatcalf"),
-  calfraise:    X("Standing calf raise", "bb", "fw", "squat", 1.0, ["calves"], [], "calf"),
-  // core
-  selcrunch:    X("Abdominal Crunch", "sel", "sel", "bench", 0.55, ["abs"], [], "crunch"),
-  selrotary:    X("Rotary Torso", "sel", "sel", "bench", 0.45, ["abs"], [], "crunch"),
-  cablecrunch:  X("Cable crunch", "cab", "cab", "bench", 0.7, ["abs"], [], "crunch"),
-  legraise:     X("Hanging leg raise", "bw", "bw", "legraise", 1, ["abs"], ["forearms"], "legraise"),
-};
+   data/exercises.json is built by tools/build_library.py from free-exercise-db (public domain):
+   { id: { n name, eq bb|db|kb|mc|cab|bw, line, base, k ratio, mus, sec, img, hand, lvl, ins, est } }
+   Technogym Selection / Pure Strength machines are curated entries that use the photos of the closest movement. */
+export const EX = {};
+let IMG_SHA = "main";
+export async function loadLibrary(fetchJson = u => fetch(u).then(r => r.json())) {
+  if (Object.keys(EX).length) return EX;
+  const d = await fetchJson("data/exercises.json");
+  IMG_SHA = d.sha || "main"; Object.assign(EX, d.ex); return EX;
+}
+// two photos per exercise (start and end position), served by jsDelivr from the free-exercise-db repo
+export const imgUrl = (id, i = 0) => { const x = exOf(id); return x ? `https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@${IMG_SHA}/exercises/${x.img}/${i}.jpg` : ""; };
 // older activity ids keep working
 const ALIAS = { ohpress: "ohp", hipthrusts: "hipthrust" };
 export const exOf = id => EX[id] || EX[ALIAS[id]] || null;
-export const EQUIP = { bb: "Barbell", db: "Dumbbell", sel: "Selection", pl: "Pure Strength", cab: "Cable", bw: "Bodyweight" };
+export const EQUIP = { bb: "Barbell", db: "Dumbbell", kb: "Kettlebell", mc: "Machine", cab: "Cable", bw: "Bodyweight" };
 
 /* ---------- maths ---------- */
 export const e1rm = (w, r) => r <= 1 ? w : w * (1 + Math.min(r, 20) / 30);

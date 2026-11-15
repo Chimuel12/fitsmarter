@@ -1,6 +1,6 @@
 // Strength UI: body hub, exercise picker and the set logger (Set · Previous · kg · Reps · ✓).
 import { EX, exOf, EQUIP, MUSCLES, TIERS, tierFor, tierIndex, setPct, setValue, isReps, fmtSet, topTxt, nextTier, muscleMap, overall, bestByExercise } from "./strength.js";
-import { bodySvg, gem, animSvg, startAnims } from "./body.js";
+import { bodySvg, gem, exMedia } from "./body.js";
 
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 export const tierChip = pct => { const t = tierFor(pct); return `<span class="tchip" style="--tc:${t.c};--tc2:${t.c2}">${gem(t, 16)}${t.n} · Top ${topTxt(pct)}%</span>`; };
@@ -19,13 +19,15 @@ export function finalizeLifts(lifts, prof, all = false) {
 export function liftList(lifts, prof) {
   return `<div class="lifts">${lifts.map(l => { const x = exOf(l.ex); if (!x) return "";
     const pct = l.pct ?? Math.max(...l.sets.map(s => setPct(l.ex, s, prof)));
-    return `<div class="lift"><div class="lift-h">${animSvg(x.anim, x.mus, "thumb")}<div><b>${esc(x.n)}</b><small>${esc(x.line)}</small></div>${tierChip(pct)}</div>
+    return `<div class="lift"><div class="lift-h">${exMedia(l.ex, "thumb")}<div><b>${esc(x.n)}</b><small>${esc(x.line)}</small></div>${tierChip(pct)}</div>
       <div class="sets">${l.sets.map(s => `<span>${fmtSet(l.ex, s)}</span>`).join("")}</div></div>`; }).join("")}</div>`;
 }
 
 /* ---------- exercise picker ---------- */
 const GROUPS = { all: ["All", null], chest: ["Chest", ["chest"]], back: ["Back", ["lats", "traps", "lowerback"]], shoulders: ["Shoulders", ["shoulders"]], arms: ["Arms", ["biceps", "triceps", "forearms"]], legs: ["Legs", ["quads", "hamstrings", "adductors", "calves"]], glutes: ["Glutes", ["glutes"]], core: ["Core", ["abs"]] };
-const EQG = { all: "All", fw: "Free weights", sel: "Selection", pl: "Pure Strength", cab: "Cable", bw: "Bodyweight" };
+const EQG = { all: "All", tg: "Technogym", fw: "Free weights", mc: "Machines", cab: "Cable", bw: "Bodyweight" };
+const eqMatch = (e, x) => e === "all" || (e === "tg" ? /Technogym/.test(x.line) : e === "fw" ? ["bb", "db", "kb"].includes(x.eq) : x.eq === e);
+const MAXROWS = 100;
 export function pickExercise(sheet, onPick, preset = {}) {
   let q = "", g = preset.group || "all", e = "all";
   sheet(`<h2>Add exercise</h2>
@@ -35,8 +37,12 @@ export function pickExercise(sheet, onPick, preset = {}) {
     <div class="list exlist" id="exL"></div>`, (el, close) => {
     const draw = () => {
       const ql = q.toLowerCase(), mg = GROUPS[g][1];
-      const items = Object.entries(EX).filter(([, x]) => (!mg || x.mus.some(m => mg.includes(m))) && (e === "all" || (e === "fw" ? ["bb", "db"].includes(x.eq) : x.eq === e)) && (!ql || (x.n + " " + x.line + " " + musNames(x)).toLowerCase().includes(ql)));
-      el.querySelector("#exL").innerHTML = items.map(([id, x]) => `<button class="li exrow" data-pick="${id}" type="button">${animSvg(x.anim, x.mus, "thumb")}<div><b>${esc(x.n)}</b><small>${esc(x.line)} · ${esc(musNames(x))}</small></div><span class="eqtag">${EQUIP[x.eq]}</span></button>`).join("") || `<div class="empty">No exercise matches.</div>`;
+      const words = ql.split(/\s+/).filter(Boolean);
+      // curated (incl. Technogym) first, then the rest of the library
+      const items = Object.entries(EX).filter(([, x]) => (!mg || x.mus.some(m => mg.includes(m))) && eqMatch(e, x) && words.every(w => (x.n + " " + x.line + " " + musNames(x)).toLowerCase().includes(w)))
+        .sort((a, b) => (a[1].est || 0) - (b[1].est || 0));
+      el.querySelector("#exL").innerHTML = items.slice(0, MAXROWS).map(([id, x]) => `<button class="li exrow" data-pick="${id}" type="button">${exMedia(id, "thumb")}<div><b>${esc(x.n)}</b><small>${esc(x.line)} · ${esc(musNames(x))}</small></div><span class="eqtag">${EQUIP[x.eq]}</span></button>`).join("")
+        + (items.length > MAXROWS ? `<p class="muted" style="text-align:center;padding:10px">${items.length - MAXROWS} more · search to narrow down</p>` : "") || `<div class="empty">No exercise matches.</div>`;
     };
     el.querySelector("#exQ").oninput = ev => { q = ev.target.value; draw(); };
     el.querySelector("#exG").onclick = ev => { const b = ev.target.closest("[data-g]"); if (!b) return; g = b.dataset.g; el.querySelectorAll("#exG button").forEach(x => x.setAttribute("aria-pressed", x === b)); draw(); };
@@ -61,16 +67,16 @@ export function gymEditor(el, state, ctx) {
     const x = exOf(L.ex), reps = isReps(L.ex);
     const done = L.sets.filter(s => s.done || (manual && +s.r > 0)), best = done.length ? Math.max(...done.map(s => setPct(L.ex, s, prof))) : 0, nx = best ? nextTier(L.ex, best, prof) : null;
     el.innerHTML = `<div class="gx">
-      <div class="gx-stage">${animSvg(x.anim, x.mus, "play big")}<span class="gx-line">${esc(x.line)}</span></div>
-      <div class="gx-chips">${state.lifts.map((l, i) => { const y = exOf(l.ex), ok = l.sets.some(s => s.done); return `<button type="button" class="gx-chip${i === state.cur ? " on" : ""}" data-cur="${i}" aria-label="${esc(y.n)}">${animSvg(y.anim, y.mus, "thumb")}${ok ? "<i>✓</i>" : ""}</button>`; }).join("")}<button type="button" class="gx-chip plus" data-add aria-label="Add exercise">+</button></div>
+      <div class="gx-stage">${exMedia(L.ex, "big")}<span class="gx-line">${esc(x.line)}</span></div>
+      <div class="gx-chips">${state.lifts.map((l, i) => { const y = exOf(l.ex), ok = l.sets.some(s => s.done); return `<button type="button" class="gx-chip${i === state.cur ? " on" : ""}" data-cur="${i}" aria-label="${esc(y.n)}">${exMedia(l.ex, "thumb")}${ok ? "<i>✓</i>" : ""}</button>`; }).join("")}<button type="button" class="gx-chip plus" data-add aria-label="Add exercise">+</button></div>
       <div class="gx-head"><div><h3>${esc(x.n)}</h3><small>${esc(musNames(x))}</small></div>${best ? tierChip(best) : ""}<button type="button" class="gx-x" data-rm aria-label="Remove exercise">✕</button></div>
+      ${x.ins?.length ? `<details class="gx-how"><summary>How to do it</summary><ol>${x.ins.map(s => `<li>${esc(s)}</li>`).join("")}</ol></details>` : ""}
       <table class="gx-sets"><thead><tr><th>Set</th><th>Previous</th>${reps ? "" : `<th>${x.hand ? "kg/hand" : "kg"}</th>`}<th>Reps</th><th></th></tr></thead><tbody>
       ${L.sets.map((s, i) => { const p = prev(L.ex, i); return `<tr class="${s.done ? "done" : ""}"><td>${i + 1}</td><td class="pv">${p ? fmtSet(L.ex, p) : "–"}</td>${reps ? "" : `<td><input inputmode="decimal" type="number" step="0.5" min="0" data-w="${i}" value="${s.w}" placeholder="${p?.w ?? "kg"}"></td>`}<td><input inputmode="numeric" type="number" min="1" max="200" data-r="${i}" value="${s.r}" placeholder="${p?.r ?? "reps"}"></td><td><button type="button" class="chk" data-done="${i}" aria-pressed="${!!s.done}" aria-label="Set done">✓</button></td></tr>`; }).join("")}
       </tbody></table>
       <div class="row"><button type="button" class="pill ghost block" data-addset>+ Add set</button></div>
       ${nx ? `<p class="gx-next">${gem(nx.tier, 18)} <b>${nx.tier.n}</b> at ${reps ? `${Math.ceil(nx.value)} reps` : `${Math.ceil(nx.value * 2) / 2} kg × 10${x.hand ? " per hand" : ""}`}</p>` : `<p class="gx-next muted">Tier is calculated from the 10-rep equivalent of your best set.</p>`}
     </div>`;
-    startAnims();
   }
   el.addEventListener("input", ev => { const L = state.lifts[state.cur], w = ev.target.dataset.w, r = ev.target.dataset.r; if (w != null) L.sets[w].w = ev.target.value; if (r != null) L.sets[r].r = ev.target.value; onChange(); });
   el.addEventListener("click", ev => {
@@ -107,7 +113,7 @@ export function renderHub(el, acts, prof, ctx) {
       ${call("tr", "Balance", null, ov ? `${ov.balance}% · ${ov.trained}/${ov.total} groups` : "Train all groups")}
       ${call("bl", "Strongest", trained[0]?.[1].tier, trained[0] ? MUSCLES[trained[0][0]] : "–")}
       ${call("br", "Train next", null, MUSCLES[weakest[0]])}
-      <div class="hub-body">${bodySvg(map, back)}</div>
+      <div class="hub-body">${bodySvg(map, back, prof.sex)}</div>
     </div>
     <div class="row" style="justify-content:center"><div class="seg dark" role="group" aria-label="View"><button data-side="0" aria-pressed="${!back}">Front</button><button data-side="1" aria-pressed="${back}">Back</button></div></div>
     <div class="hub-list">${trained.length ? trained.map(([m, r]) => `<button class="hub-row" data-mus="${m}" type="button">${gem(r.tier, 24)}<div><b>${MUSCLES[m]}</b><small>${esc(exOf(r.ex).n)} · ${fmtSet(r.ex, r.s)}${r.prim ? "" : " (assisting)"}</small></div><span>${r.tier.n}<small>Top ${topTxt(r.pct)}%</small></span></button>`).join("")
@@ -120,12 +126,12 @@ export function renderHub(el, acts, prof, ctx) {
 }
 function muscleSheet(m, map, prof, ctx) {
   const r = map[m], x = r && exOf(r.ex), nx = r ? nextTier(r.ex, r.prim ? r.pct : r.pct / 0.6, prof) : null;
-  const sug = Object.entries(EX).filter(([, y]) => y.mus.includes(m)).slice(0, 6);
+  const sug = Object.entries(EX).filter(([, y]) => y.mus.includes(m)).sort((a, b) => (a[1].est || 0) - (b[1].est || 0)).slice(0, 6);
   ctx.sheet(`<h2>${MUSCLES[m]}</h2>
     ${r ? `<div class="row" style="gap:14px">${gem(r.tier, 56)}<div><b style="font-size:22px">${r.tier.n}</b><div class="muted">Top ${topTxt(r.pct)}% of gym-goers like you</div></div></div>
-      <div class="lift"><div class="lift-h">${animSvg(x.anim, x.mus, "thumb")}<div><b>Best: ${esc(x.n)}</b><small>${fmtSet(r.ex, r.s)}${r.prim ? "" : " · counts 60% (assisting muscle)"}</small></div></div></div>
+      <div class="lift"><div class="lift-h">${exMedia(r.ex, "thumb")}<div><b>Best: ${esc(x.n)}</b><small>${fmtSet(r.ex, r.s)}${r.prim ? "" : " · counts 60% (assisting muscle)"}</small></div></div></div>
       ${nx ? `<p>${gem(nx.tier, 18)} Next: <b>${nx.tier.n}</b> at ${isReps(r.ex) ? `${Math.ceil(nx.value)} reps` : `${Math.ceil(nx.value * 2) / 2} kg × 10`} on ${esc(x.n)}</p>` : ""}`
       : `<p class="muted">Not trained yet. Log one of these to light it up:</p>`}
-    <div class="list">${sug.map(([id, y]) => `<div class="li">${animSvg(y.anim, y.mus, "thumb")}<div><b>${esc(y.n)}</b><small>${esc(y.line)}</small></div></div>`).join("")}</div>`);
+    <div class="list">${sug.map(([id, y]) => `<div class="li">${exMedia(id, "thumb")}<div><b>${esc(y.n)}</b><small>${esc(y.line)}</small></div></div>`).join("")}</div>`);
 }
 export { bestByExercise, tierIndex };

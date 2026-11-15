@@ -1,8 +1,8 @@
 import { TYPES, score, LocalStore, FirebaseStore, decodePath, encodePath } from "./store.js";
 import CONFIG from "./firebase-config.js";
-import { tierFor, tierIndex } from "./strength.js";
+import { tierFor, tierIndex, loadLibrary } from "./strength.js";
 import { gymEditor, liftList, finalizeLifts, renderHub } from "./gym.js";
-import { startAnims, mountDefs } from "./body.js";
+import { mountDefs, loadBody } from "./body.js";
 
 /* ===================== helpers ===================== */
 const $ = s => document.querySelector(s);
@@ -34,6 +34,7 @@ let unGroup = null;
 
 /* ===================== boot & welcome ===================== */
 async function boot() {
+  await Promise.all([loadLibrary(), loadBody()]).catch(e => console.error("library", e));
   store = CONFIG ? new FirebaseStore(CONFIG) : new LocalStore();
   try { me = await store.init(); }
   catch (e) { console.error(e); toast("Could not reach Firebase, using demo mode"); store = new LocalStore(); me = await store.init(); }

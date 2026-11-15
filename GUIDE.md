@@ -30,7 +30,7 @@ Under **Goals & profile**, fill in:
 
 ## 5. Strength tiers and the body hub
 
-**Logging sets.** Pick **Strength**, tap **Start**, then **+ Add exercise**. The library has 80 exercises:
+**Logging sets.** Pick **Strength**, tap **Start**, then **+ Add exercise**. The library has 611 exercises from the public-domain free-exercise-db, each with real photos that loop between the start and end position and a "How to do it" section:
 
 - free weights;
 - bodyweight moves;
@@ -38,7 +38,7 @@ Under **Goals & profile**, fill in:
 - **Technogym Pure Strength** plate-loaded machines (Leg Press, Hack Squat, Belt Squat, Hip Thrust, Row, T-Bar Row, Pulldown, Pullover, Chest Press, Shoulder Press, Biceps, Seated Dip…);
 - cable-station exercises.
 
-You can search by name, or filter by muscle and by equipment. Each exercise shows an animated figure with the working muscle highlighted.
+You can search by name, or filter by muscle and by equipment (Technogym, free weights, machines, cable, bodyweight).
 
 The set table works like a gym app: **Set · Previous · kg · Reps · ✓**. **Previous** shows what you did last time. Tap **✓** to complete a set, and **+ Add set** copies the last one.
 
@@ -60,7 +60,7 @@ The set table works like a gym app: **Set · Previous · kg · Reps · ✓**. **
 | Champion | top 10% |
 | Symmetric | top 5% |
 
-**The body hub (You tab).** Every muscle you train lights up in its tier color, on the front and on the back view. The tier comes from your best exercise for that muscle; assisting muscles count at 60%. The hub also shows:
+**The body hub (You tab).** Every muscle you train lights up in its tier color, on a detailed front and back body (male or female, from your profile). It also **grows with its tier**: untrained muscles look thin, and Symmetric ones look full. The tier comes from your best exercise for that muscle; assisting muscles count at 60%. The hub also shows:
 
 - **Overall**, your average level;
 - **Balance**, how evenly you train;

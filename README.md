@@ -8,8 +8,8 @@ Track workouts, close your rings and compete with friends. It is an installable 
 - **Record:** GPS tracking for runs, walks, rides and hikes, with a live map, pace and distance. Timers for gym, HIIT, yoga, swim, snowboard and more. Workouts can also be logged by hand.
 - **Feed:** your friends' workouts with route maps and kudos.
 - **Compete:** groups joined by invite code or link. Leaderboards with a podium, by week or month, ranked by points, minutes, km or workouts.
-- **Body hub:** a front and back muscle map in which each muscle shows its tier, from Bronze (top 90%) to Symmetric (top 5%). Tiers come from your best set as a 10-rep equivalent, compared with reference weights for gym-goers and adjusted for body weight, sex, age and height.
-- **Exercise library:** 80 exercises with original animated figures. It covers free weights, bodyweight moves, Technogym Selection and Pure Strength machines, and cable-station exercises. The set logger has Set · Previous · kg · Reps · ✓ columns.
+- **Body hub:** a detailed male or female muscle map, front and back. Each muscle shows its tier color, from Bronze (top 90%) to Symmetric (top 5%), and **grows with its tier**: untrained muscles look thin, and stronger ones fill out. Tiers come from your best set as a 10-rep equivalent, compared with reference weights for gym-goers and adjusted for body weight, sex, age and height.
+- **Exercise library:** 611 exercises from the public-domain [free-exercise-db](https://github.com/yuhonas/free-exercise-db). Each one has real start and end photos that loop as an animation, plus step-by-step instructions. It includes curated Technogym Selection and Pure Strength machines. The set logger has Set · Previous · kg · Reps · ✓ columns.
 - **You:** totals, the body hub, daily goals and body data.
 
 A quick guide is in [GUIDE.md](GUIDE.md). In the app, tap **?** to start it.
@@ -25,7 +25,7 @@ To compete for real, follow [SETUP.md](SETUP.md).
 ## Files
 
 - `index.html`, `styles.css`, `app.js`: the user interface.
-- `strength.js`: tier engine and exercise library. `body.js`: muscle map and animations. `gym.js`: hub, picker and set logger.
+- `strength.js`: tier engine. `data/exercises.json`: exercise library, rebuilt with `tools/build_library.py`. `body.js` + `data/bodymap.json`: body model and photo animations. `gym.js`: hub, picker and set logger. Third-party credits are in [THIRD_PARTY.md](THIRD_PARTY.md).
 - `store.js`: the data layer. `LocalStore` serves demo mode and `FirebaseStore` handles Auth and Firestore.
 - `firebase-config.js`: your Firebase web config, or `null` for demo mode.
 - `firestore.rules`: the database security rules.
