@@ -1,6 +1,8 @@
 import { TYPES, score, LocalStore, FirebaseStore, decodePath, encodePath } from "./store.js";
 import CONFIG from "./firebase-config.js";
-import { EXERCISES, MEDALS, e1rm, percentile, medalFor, nextMedal, bests, fmtLift, unitOf } from "./strength.js";
+import { tierFor, tierIndex } from "./strength.js";
+import { gymEditor, liftList, finalizeLifts, renderHub } from "./gym.js";
+import { startAnims, mountDefs } from "./body.js";
 
 /* ===================== helpers ===================== */
 const $ = s => document.querySelector(s);
@@ -67,6 +69,7 @@ function welcome() {
 
 /* ===================== app ===================== */
 function start() {
+  mountDefs();
   $("#app").hidden = false; $("#welcome").hidden = true;
   $("#demoBanner").hidden = store.mode !== "demo";
   store.myActivities(a => { S.mine = a; renderToday(); renderMe(); });
@@ -92,22 +95,23 @@ function subscribeGroup() {
 function route() {
   const v = (location.hash || "#today").slice(1);
   const ok = ["today", "feed", "record", "compete", "me"].includes(v) ? v : "today";
+  if (!tour) document.querySelectorAll(".sheet-bg").forEach(x => x.remove());
   document.querySelectorAll(".view").forEach(x => x.classList.toggle("on", x.id === "v-" + ok));
   document.querySelectorAll(".tabs a").forEach(a => a.classList.toggle("on", a.dataset.v === ok));
   scrollTo(0, 0);
 }
 
 /* ---------- leaderboard maths ---------- */
-const METRICS = { points: { n: "Points", f: a => a.points || 0, u: "pts" }, minutes: { n: "Minutes", f: a => a.durationS / 60, u: "min" }, km: { n: "Km", f: a => (a.distanceM || 0) / 1000, u: "km" }, workouts: { n: "Workouts", f: () => 1, u: "" }, medals: { n: "Medals", f: () => 0, u: "pts" } };
+const METRICS = { points: { n: "Points", f: a => a.points || 0, u: "pts" }, minutes: { n: "Minutes", f: a => a.durationS / 60, u: "min" }, km: { n: "Km", f: a => (a.distanceM || 0) / 1000, u: "km" }, workouts: { n: "Workouts", f: () => 1, u: "" }, tiers: { n: "Tiers", f: () => 0, u: "pts" } };
 function board(period = S.period, metric = S.metric) {
   const since = period === "week" ? weekStart() : monthStart(), m = METRICS[metric], tot = {};
   store.members(S.gid).forEach(p => tot[p.uid] = { p, v: 0, n: 0 });
   S.gActs.filter(a => a.start >= since).forEach(a => { const t = tot[a.uid] || (tot[a.uid] = { p: { uid: a.uid, name: a.name, photo: a.photo }, v: 0, n: 0 }); t.v += m.f(a); t.n++; });
-  if (metric === "medals") { // medal points of each member's best lift per exercise in the period
+  if (metric === "tiers") { // tier points (Bronze 1 … Symmetric 8) of each member's best lift per exercise in the period
     const best = {};
     S.gActs.filter(a => a.start >= since).forEach(a => (a.lifts || []).forEach(l => { const k = a.uid + "|" + l.ex; best[k] = Math.max(best[k] || 0, l.pct || 0); }));
     Object.values(tot).forEach(t => t.v = 0);
-    Object.entries(best).forEach(([k, pct]) => { const t = tot[k.split("|")[0]]; if (t) t.v += medalFor(pct)?.pts || 0; });
+    Object.entries(best).forEach(([k, pct]) => { const t = tot[k.split("|")[0]]; if (t) t.v += tierIndex(tierFor(pct).id); });
   }
   return Object.values(tot).sort((a, b) => b.v - a.v || a.p.name.localeCompare(b.p.name));
 }
@@ -171,7 +175,7 @@ function card(a) {
     <h4>${esc(titleFor(a))}</h4>
     <div class="st">${a.distanceM ? `<div><small>Distance</small><b>${km(a.distanceM)} km</b></div>` : ""}<div><small>Time</small><b>${fmtDur(a.durationS)}</b></div>${a.distanceM ? `<div><small>${a.type === "ride" ? "Speed" : "Pace"}</small><b>${pace(a.durationS, a.distanceM, a.type)}</b></div>` : `<div><small>Calories</small><b>${a.kcal} kcal</b></div>`}<div><small>Points</small><b class="grad-text">${a.points}</b></div></div>
     ${a.route ? routeSvg(a.route) : ""}
-    ${a.lifts?.length ? liftList(a.lifts) : ""}
+    ${a.lifts?.length ? liftList(a.lifts, me) : ""}
     <div class="act-f"><button class="kudo" data-kudo="${esc(a.id)}" aria-pressed="${mine}" ${a.uid === me.uid ? "disabled" : ""}>👏 ${n || ""}<span>${a.uid === me.uid ? (n === 1 ? "kudo" : "kudos") : mine ? "Given" : "Kudos"}</span></button><small>${new Date(a.start).toLocaleString("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit" })}</small></div>
   </article>`;
 }
@@ -267,7 +271,7 @@ async function startSession(restore) {
       <div class="lst">${gps ? `<div><small>Distance</small><b id="ldist">0.00</b><small>km</small></div><div><small>${type === "ride" ? "Speed" : "Pace"}</small><b id="lpace">–</b></div>` : `<div></div><div></div>`}<div><small>Calories</small><b id="lkcal">0</b></div></div>
       <div class="lbtns"><button class="round pause" id="lpause" type="button">Pause</button><button class="round stop" id="lstop" type="button">Finish</button></div></div>`;
   document.body.appendChild(el);
-  if (type === "gym") { el.classList.add("gym"); liftEditor($("#gymlog"), sess.lifts, persist); }
+  if (type === "gym") { el.classList.add("gym"); sess.gym = { lifts: sess.lifts, cur: 0 }; gymEditor($("#gymlog"), sess.gym, { prof: me, history: S.mine, toast, sheet, onChange: persist }); }
   try { sess.wake = await navigator.wakeLock?.request("screen"); } catch {}
   if (gps) {
     try {
@@ -314,17 +318,17 @@ function finish() {
   saveSheet({ type: s.type, start: s.t0, durationS: t, distanceM: Math.round(s.dist), route: pts.length > 1 ? encodePath(pts) : "", lifts: s.lifts });
 }
 function saveSheet(a) {
-  const sc = score(a, me.weight);
+  const sc = score(a, me.weight), lifts = finalizeLifts(a.lifts || [], me, a.manual);
   sheet(`<h2>${TYPES[a.type].e} Nice work!</h2>
     <div class="tiles"><div class="tile"><small>Time</small><b>${fmtDur(a.durationS)}</b></div><div class="tile"><small>${a.distanceM ? "Distance" : "Calories"}</small><b>${a.distanceM ? km(a.distanceM) + " km" : sc.kcal + " kcal"}</b></div><div class="tile"><small>Points</small><b class="grad-text">${sc.points}</b></div></div>
     ${a.route ? routeSvg(a.route) : ""}
-    ${a.lifts?.length ? liftList(a.lifts) : ""}
+    ${lifts.length ? liftList(lifts, me) : ""}
     <div class="field"><label for="sT">Title</label><input id="sT" maxlength="60" placeholder="${esc(titleFor(a))}"></div>
     <div class="row"><button class="pill ghost" style="flex:1" data-close type="button" id="sDiscard">Discard</button><button class="pill grad" style="flex:2" id="sSave" type="button">Save</button></div>`, (el, close) => {
     el.querySelector("#sDiscard").addEventListener("click", () => toast("Workout discarded"));
     el.querySelector("#sSave").onclick = async () => {
       el.querySelector("#sSave").disabled = true;
-      try { const lifts = finalizeLifts(a.lifts || []), rec = { ...a, title: el.querySelector("#sT").value.trim() }; delete rec.lifts; if (lifts.length) rec.lifts = lifts; await store.addActivity(rec); close(); toast(`+${sc.points} ${sc.points === 1 ? "point" : "points"} 🔥`); location.hash = "#today"; }
+      try { const rec = { ...a, title: el.querySelector("#sT").value.trim() }; delete rec.lifts; delete rec.manual; if (lifts.length) rec.lifts = lifts; await store.addActivity(rec); close(); toast(`+${sc.points} ${sc.points === 1 ? "point" : "points"} 🔥`); location.hash = "#today"; }
       catch (e) { console.error(e); el.querySelector("#sSave").disabled = false; toast("Could not save. Try again."); }
     };
   });
@@ -338,89 +342,22 @@ function manual() {
     <div class="field"><label for="mK">Distance (km, optional)</label><input id="mK" type="number" min="0" max="500" step="0.01" inputmode="decimal"></div></div>
     <div id="mLifts"></div>
     <button class="pill grad block" type="submit" form="mForm">Continue</button></form>`, (el, close) => {
-    const f = el.querySelector("form"), lifts = []; f.id = "mForm";
+    const f = el.querySelector("form"), gs = { lifts: [], cur: 0 }; f.id = "mForm";
     const sync = () => { const gym = el.querySelector("#mT").value === "gym"; el.querySelector("#mK").closest(".field").style.display = gym ? "none" : ""; el.querySelector("#mLifts").style.display = gym ? "" : "none"; };
-    liftEditor(el.querySelector("#mLifts"), lifts); el.querySelector("#mT").onchange = sync; sync();
+    gymEditor(el.querySelector("#mLifts"), gs, { prof: me, history: S.mine, toast, sheet, manual: true }); el.querySelector("#mT").onchange = sync; sync();
     f.onsubmit = e => { e.preventDefault(); close();
-      saveSheet({ type: el.querySelector("#mT").value, start: +new Date(el.querySelector("#mS").value), durationS: Math.round(+el.querySelector("#mD").value * 60), distanceM: Math.round((+el.querySelector("#mK").value || 0) * 1000), route: "", lifts: el.querySelector("#mT").value === "gym" ? lifts : [] }); };
+      saveSheet({ type: el.querySelector("#mT").value, start: +new Date(el.querySelector("#mS").value), durationS: Math.round(+el.querySelector("#mD").value * 60), distanceM: Math.round((+el.querySelector("#mK").value || 0) * 1000), route: "", lifts: el.querySelector("#mT").value === "gym" ? gs.lifts : [], manual: true }); };
   });
 }
 
-/* ---------- strength & medals ---------- */
-let lastEx = localStorage.getItem("fs-ex") || "bench";
-const topTxt = pct => { const t = 100 - pct; return t < 1 ? "<1" : Math.round(t); };
-const chip = pct => { const m = medalFor(pct); return `<span class="medal${m ? "" : " none"}" style="--mc:${m ? m.c : "var(--muted)"}">${m ? `${m.e} ${m.n}` : "No medal"} · Top ${topTxt(pct)}%</span>`; };
-function liftStats(l) {
-  const X = EXERCISES[l.ex]; let best = null;
-  for (const s of l.sets) { const v = X.kind === "r" ? s.r : e1rm(s.w, s.r); if (!best || v > best.v) best = { v, s }; }
-  const pct = l.pct ?? percentile(l.ex, best.v, me);
-  return { best, pct, medal: medalFor(pct) };
-}
-const finalizeLifts = lifts => lifts.filter(l => l.sets.length).map(l => { const st = liftStats(l); return { ex: l.ex, sets: l.sets.map(s => ({ w: +s.w || 0, r: +s.r })), pct: Math.round(st.pct * 10) / 10, medal: st.medal?.id || "" }; });
-const liftMedals = acts => Object.values(bests(acts, me));
-function liftList(lifts, edit) {
-  return `<div class="lifts">${lifts.map((l, i) => { const X = EXERCISES[l.ex], st = liftStats(l);
-    return `<div class="lift"><div class="lift-h"><span class="em">${X.e}</span><div><b>${X.n}</b><small>${X.kind === "r" ? `Best ${st.best.v} reps` : `Est. 1RM ${Math.round(st.best.v)} ${X.kind === "d" ? "kg/hand" : "kg"}`}</small></div>${chip(st.pct)}</div>
-      <div class="sets">${l.sets.map((s, j) => `<span>${fmtLift(l.ex, s)}${edit ? `<button type="button" data-delset="${i},${j}" aria-label="Remove set">✕</button>` : ""}</span>`).join("")}</div></div>`; }).join("")}</div>`;
-}
-function liftEditor(el, lifts, onChange) {
-  const draw = () => {
-    el.innerHTML = (lifts.length ? liftList(lifts, true) : `<p class="muted" style="text-align:center;padding:8px 0">Log each set: exercise, weight and reps. You get a medal per lift.</p>`) +
-      `<div class="addset"><select aria-label="Exercise">${Object.entries(EXERCISES).map(([k, x]) => `<option value="${k}" ${k === lastEx ? "selected" : ""}>${x.n}</option>`).join("")}</select>
-      <input class="aw" type="number" step="0.5" min="0" max="500" inputmode="decimal" aria-label="Weight"><input class="ar" type="number" min="1" max="200" inputmode="numeric" placeholder="reps" aria-label="Reps"><button class="pill grad sm" type="button">Add set</button></div>`;
-    const sel = el.querySelector("select"), w = el.querySelector(".aw"), r = el.querySelector(".ar");
-    const upd = () => { const k = EXERCISES[sel.value].kind; w.style.display = k === "r" ? "none" : ""; w.placeholder = k === "d" ? "kg/hand" : "kg"; };
-    sel.onchange = () => { lastEx = sel.value; localStorage.setItem("fs-ex", lastEx); upd(); }; upd();
-    w.value = el.dataset.w || "";
-    el.querySelector(".addset button").onclick = () => {
-      const ex = sel.value, X = EXERCISES[ex], kg = +w.value || 0, reps = Math.round(+r.value);
-      if (!reps || (X.kind !== "r" && !kg)) { toast(X.kind === "r" ? "Enter reps" : "Enter weight and reps"); return; }
-      let l = lifts.find(x => x.ex === ex); const before = l ? liftStats(l).pct : 0;
-      if (!l) lifts.push(l = { ex, sets: [] }); l.sets.push({ w: kg, r: reps }); el.dataset.w = kg || "";
-      const st = liftStats(l);
-      if (!me.sex || !me.height || !me.birthYear) toast("Add sex, height and birth year in You → Goals for exact medals");
-      else if (st.pct > before) toast(st.medal ? `${st.medal.e} ${st.medal.n} · top ${topTxt(st.pct)}% for ${X.n.toLowerCase()}` : `Top ${topTxt(st.pct)}% · keep going for bronze`);
-      onChange && onChange(); draw();
-    };
-    el.querySelectorAll("[data-delset]").forEach(b => b.onclick = () => { const [i, j] = b.dataset.delset.split(",").map(Number); lifts[i].sets.splice(j, 1); if (!lifts[i].sets.length) lifts.splice(i, 1); onChange && onChange(); draw(); });
-  };
-  draw();
-}
-function renderStrength() {
-  const bs = liftMedals(S.mine).sort((a, b) => b.pct - a.pct), miss = !me.sex || !me.height || !me.birthYear;
-  const marks = [50, 70, 85, 95, 99];
-  $("#strength").innerHTML = (miss ? `<div class="banner" style="margin-bottom:12px"><span>📏</span><div>Add <b>sex, height and birth year</b> below so medals compare you with people like you.</div></div>` : "") +
-    (bs.map(b => { const X = EXERCISES[b.ex], nx = nextMedal(b.ex, b.pct, me), u = X.kind === "r" ? "reps" : X.kind === "d" ? "kg/hand" : "kg";
-      return `<div class="sbest"><div class="lift-h"><span class="em">${X.e}</span><div><b>${X.n}</b><small>${fmtLift(b.ex, b)} · ${X.kind === "r" ? "" : `1RM ${Math.round(b.v)} ${u} · `}${ago(b.start)}</small></div>${chip(b.pct)}</div>
-        <div class="tier" aria-hidden="true">${marks.map(m => `<i style="left:${m}%"></i>`).join("")}<b style="left:${Math.min(99.5, b.pct)}%"></b></div>
-        <small class="muted">${nx ? `${nx.medal.e} ${nx.medal.n} at ${X.kind === "r" ? Math.ceil(nx.value) + " reps" : `${Math.ceil(nx.value)} ${u} 1RM (+${Math.max(1, Math.ceil(nx.value - b.v))})`}` : "Top of the charts 💎"}</small></div>`; }).join("")
-    || `<div class="empty"><span>🏋️</span>Log a Strength workout with weights and reps to earn your first medal.<button class="pill primary sm" id="firstLift" type="button">Log a lift</button></div>`) +
-    `<div class="mlegend">${MEDALS.slice().reverse().map(m => `<span>${m.e} ${m.n} <small>top ${m.top}%</small></span>`).join("")}</div>`;
-  $("#firstLift") && ($("#firstLift").onclick = () => { S.type = "gym"; renderTypes(); manual(); });
-}
-
 /* ---------- profile ---------- */
-const BADGES = [
-  ["🏁", "First workout", m => m.length >= 1], ["🔟", "10 workouts", m => m.length >= 10], ["💯", "50 workouts", m => m.length >= 50],
-  ["🔥", "3-day streak", m => streakMax(m) >= 3], ["⚡", "7-day streak", m => streakMax(m) >= 7],
-  ["🏃", "10 km in one go", m => m.some(a => a.distanceM >= 10000)], ["🏅", "Half marathon", m => m.some(a => a.distanceM >= 21097)],
-  ["🌅", "Early bird", m => m.some(a => new Date(a.start).getHours() < 7)], ["🦉", "Night owl", m => m.some(a => new Date(a.start).getHours() >= 21)],
-  ["🎨", "5 sports", m => new Set(m.map(a => a.type)).size >= 5], ["🏔️", "Snow day", m => m.some(a => a.type === "snow" || a.type === "ski")],
-  ["🥉", "First medal", m => liftMedals(m).some(x => x.medal)], ["🥈", "Silver lifter", m => liftMedals(m).some(x => x.medal && x.medal.pts >= 2)],
-  ["🥇", "Gold lifter", m => liftMedals(m).some(x => x.medal && x.medal.pts >= 3)], ["💎", "Diamond", m => liftMedals(m).some(x => x.medal && x.medal.pts >= 5)],
-  ["👑", "100 pts in a week", m => { const w = {}; m.forEach(a => { const k = weekStart(a.start); w[k] = (w[k] || 0) + a.points; }); return Object.values(w).some(v => v >= 100); }],
-];
-function streakMax(m) { const d = [...new Set(m.map(a => dayStart(a.start)))].sort((a, b) => a - b); let best = 0, cur = 0; d.forEach((x, i) => { cur = i && Math.round((x - d[i - 1]) / DAY) === 1 ? cur + 1 : 1; best = Math.max(best, cur); }); return best; }
 function renderMe() {
   if (!me) return;
   $("#meAvatar").outerHTML = avatar(me, "lg").replace('class="avatar lg"', 'class="avatar lg" id="meAvatar"');
   $("#t-me").textContent = me.name; $("#meSince").textContent = store.mode === "demo" ? "Demo mode" : `Member since ${new Date(me.createdAt || Date.now()).toLocaleDateString("en-GB", { month: "long", year: "numeric" })}`;
   const m = S.mine;
   $("#meTiles").innerHTML = `<div class="tile"><small>Workouts</small><b>${m.length}</b></div><div class="tile"><small>Total time</small><b>${fmtMin(m.reduce((s, a) => s + a.durationS, 0))}</b></div><div class="tile"><small>Distance</small><b>${(m.reduce((s, a) => s + (a.distanceM || 0), 0) / 1000).toFixed(0)} km</b></div>`;
-  const got = BADGES.filter(b => b[2](m)).length;
-  renderStrength();
-  $("#badgeCount").textContent = `${got}/${BADGES.length}`;
-  $("#badges").innerHTML = BADGES.map(([e, n, f]) => `<div class="badge ${f(m) ? "got" : ""}"><span>${e}</span>${n}</div>`).join("");
+  renderHub($("#hub"), m, me, { sheet, toast });
   $("#history").innerHTML = m.slice(0, 60).map(a => liAct(a).replace('</span></div>', `</span><button class="pill ghost sm" data-del="${esc(a.id)}" aria-label="Delete">✕</button></div>`)).join("") || `<div class="empty"><span>🏁</span>Nothing yet.</div>`;
   const g = me.goals || {}; $("#pName").value = me.name || ""; $("#pMove").value = g.move || 500; $("#pEx").value = g.exercise || 30; $("#pKm").value = g.km || 5; $("#pW").value = me.weight || 70; $("#pSex").value = me.sex || ""; $("#pBY").value = me.birthYear || ""; $("#pH").value = me.height || "";
   $("#accountCard").innerHTML = store.mode === "demo"
@@ -441,12 +378,12 @@ $("#profileForm").onsubmit = async e => {
 const TOUR = [
   { v: "today", sel: "#rings", t: "Close your rings", d: "Move (calories), Exercise (minutes) and Distance (km). Fill all three every day. Set your goals in You." },
   { v: "today", sel: "#rankCard", t: "Your rank", d: "Where you stand in your group this week, and how many points to catch the person ahead." },
-  { v: "record", sel: "#types", t: "Pick a sport", d: "Run, walk, ride and hike use GPS. Strength opens a set logger: exercise, kg and reps." },
+  { v: "record", sel: "#types", t: "Pick a sport", d: "Run, walk, ride and hike use GPS. Strength opens the set logger with 80 exercises, including Technogym Selection and Pure Strength machines." },
   { v: "record", sel: "#startBtn", t: "Hit Start", d: "Live timer, map, pace and calories. Pause or finish anytime, or use Log manually for past workouts." },
-  { v: "me", sel: "#strength", t: "Earn medals", d: "Every lift is compared with people of your sex, weight, age and height. Top 50% bronze, 30% silver, 15% gold, 5% platinum, 1% diamond." },
-  { v: "feed", sel: "#feed", t: "Cheer your friends", d: "See everyone's workouts, routes and medals. Tap 👏 to give kudos." },
-  { v: "compete", sel: "#compete", t: "Compete", d: "Weekly or monthly leaderboards by points, minutes, km, workouts or medals. Invite friends with your group code." },
-  { v: "me", sel: "#profileForm", t: "Make it yours", d: "Set your goals, weight, height, sex and birth year so calories and medals are accurate. Replay this guide with ? anytime." },
+  { v: "me", sel: "#hub", t: "Your body hub", d: "Each muscle lights up in its tier, from Bronze (top 90%) through Silver, Gold, Ruby, Emerald, Diamond and Champion to Symmetric (top 5%), compared with people your weight." },
+  { v: "feed", sel: "#feed", t: "Cheer your friends", d: "See everyone's workouts, routes and tiers. Tap 👏 to give kudos." },
+  { v: "compete", sel: "#compete", t: "Compete", d: "Weekly or monthly leaderboards by points, minutes, km, workouts or tiers. Invite friends with your group code." },
+  { v: "me", sel: "#profileForm", t: "Make it yours", d: "Set your goals, weight, height, sex and birth year so calories and tiers are accurate. Replay this guide with ? anytime." },
 ];
 let tour = null;
 function startTour() {

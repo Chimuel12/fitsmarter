@@ -4,7 +4,7 @@
 // Activities are written to the user's own collection and copied into the feed of every group
 // they belong to, so a group's feed and leaderboard are a single query.
 
-import { EXERCISES, e1rm, percentile, medalFor } from "./strength.js";
+import { EX, standards, setPct, tierFor, isReps } from "./strength.js";
 
 export const TYPES = {
   run:   { n: "Run",        e: "🏃", met: 9.8, gps: true },
@@ -44,7 +44,7 @@ export function decodePath(s) {
 }
 
 /* ===================== demo store ===================== */
-const LS = "fitsmarter-demo-v2";
+const LS = "fitsmarter-demo-v3";
 const DEMO_FRIENDS = [
   { uid: "f-ana", name: "Ana Weber", w: 60, sex: "f", height: 168, birthYear: 2000, str: 1.15, types: ["run", "gym", "yoga"] },
   { uid: "f-luca", name: "Luca Rossi", w: 78, sex: "m", height: 182, birthYear: 1999, str: 1.0, types: ["ride", "gym", "run"] },
@@ -60,13 +60,13 @@ function demoRoute(seed, km) {
 // a few realistic lifts per gym session, scaled by each friend's strength level
 function demoLifts(f, seed) {
   const prof = { sex: f.sex, weight: f.w, height: f.height, birthYear: f.birthYear };
-  const plan = [["bench", "squat", "row"], ["deadlift", "ohp", "pullup"], ["squat", "bench", "curl"]][seed % 3];
+  const plan = [["bench", "selchest", "row", "pulldown"], ["deadlift", "ohp", "pullup", "curl"], ["squat", "legpress", "legcurl", "selcalf"], ["inclinedb", "pslowrow", "lateral", "pushdown"]][seed % 4];
   return plan.map((ex, i) => {
-    const X = EXERCISES[ex], base = (f.sex === "f" ? X.f : X.m)[2] * f.str * (1 + ((seed + i) % 5) * 0.02);
-    const sets = X.kind === "r" ? [{ w: 0, r: Math.max(1, Math.round(base * Math.pow(f.str, 2))) }]
-      : [8, 6, 5].map(r => ({ w: Math.round(base * f.w * (X.kind === "d" ? 1 : 1) * 0.8 / 2.5) * 2.5 / (1 + r / 30) * 1.15, r })).map(s => ({ w: Math.round(s.w / 2.5) * 2.5, r: s.r }));
-    const best = Math.max(...sets.map(s => X.kind === "r" ? s.r : e1rm(s.w, s.r))), pct = Math.round(percentile(ex, best, prof) * 10) / 10;
-    return { ex, sets, pct, medal: medalFor(pct)?.id || "" };
+    const mid = standards(ex, prof)[2] * f.str * (1 + ((seed + i) % 5) * 0.03);
+    const sets = isReps(ex) ? [{ w: 0, r: Math.max(1, Math.round(mid)) }, { w: 0, r: Math.max(1, Math.round(mid * 0.8)) }]
+      : [10, 10, 8].map(r => ({ w: Math.max(2.5, Math.round(mid * (r === 8 ? 1.05 : 1) / 2.5) * 2.5), r }));
+    const pct = Math.max(...sets.map(s => setPct(ex, s, prof)));
+    return { ex, sets, pct: Math.round(pct * 10) / 10, tier: tierFor(pct).id };
   });
 }
 

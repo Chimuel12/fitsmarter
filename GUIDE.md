@@ -28,23 +28,45 @@ Under **Goals & profile**, fill in:
 4. Other sports run a timer. You can also use **Log manually** for workouts you did earlier.
 5. Tap **Finish**, give it a title if you like, and tap **Save**.
 
-## 5. Strength medals
+## 5. Strength tiers and the body hub
 
-Each lift becomes an estimated one-rep max (Epley formula). That number is compared with strength standards for people of your **sex, body weight, age and height**. The result is your percentile:
+**Logging sets.** Pick **Strength**, tap **Start**, then **+ Add exercise**. The library has 80 exercises:
 
-| Medal | You are in the… |
+- free weights;
+- bodyweight moves;
+- **Technogym Selection** machines (Chest Press, Pectoral, Lat Machine, Low Row, Leg Press, Leg Extension, Leg Curl, Abductor, Calf, Abdominal Crunch…);
+- **Technogym Pure Strength** plate-loaded machines (Leg Press, Hack Squat, Belt Squat, Hip Thrust, Row, T-Bar Row, Pulldown, Pullover, Chest Press, Shoulder Press, Biceps, Seated Dip…);
+- cable-station exercises.
+
+You can search by name, or filter by muscle and by equipment. Each exercise shows an animated figure with the working muscle highlighted.
+
+The set table works like a gym app: **Set · Previous · kg · Reps · ✓**. **Previous** shows what you did last time. Tap **✓** to complete a set, and **+ Add set** copies the last one.
+
+**How the tier is calculated.**
+
+1. Your best set is converted to a 10-rep equivalent.
+2. That number is compared with reference 10-rep weights for active gym-goers. The reference is an 80 kg man (for example, bench press 37.5 / 49 / 67.5 / 90 / 116 kg × 10 for the top 90 / 80 / 50 / 20 / 5%).
+3. The reference is adjusted for your body weight (bench reference: 56 kg at 65 kg body weight, 79 kg at 100 kg), sex, age and height.
+4. Machines and variations are rated against the matching base lift with a ratio, so they are estimates.
+
+| Tier | You are in the… |
 |---|---|
-| 💎 Diamond | top 1% |
-| 🏆 Platinum | top 5% |
-| 🥇 Gold | top 15% |
-| 🥈 Silver | top 30% |
-| 🥉 Bronze | top 50% |
+| Bronze | top 90% |
+| Silver | top 80% |
+| Gold | top 65% |
+| Ruby | top 50% |
+| Emerald | top 35% |
+| Diamond | top 20% |
+| Champion | top 10% |
+| Symmetric | top 5% |
 
-The **You → Strength medals** card shows your best lift per exercise, where you sit on the medal bar, and exactly what you need for the next medal (for example "🥈 Silver at 105 kg 1RM (+12)").
+**The body hub (You tab).** Every muscle you train lights up in its tier color, on the front and on the back view. The tier comes from your best exercise for that muscle; assisting muscles count at 60%. The hub also shows:
 
-Supported lifts: bench press, squat, deadlift, overhead press, barbell row, hip thrust, leg press, lat pulldown, dumbbell bench, dumbbell curl, pull-ups and push-ups.
+- **Overall**, your average level;
+- **Balance**, how evenly you train;
+- your **strongest** muscle and what to **train next**.
 
-*The standards are estimates based on public strength-standard tables. Use them for motivation, not as a test.*
+Tap any muscle to see your best lift, the exact weight × 10 needed for the next tier, and exercises that train it.
 
 ## 6. Compete
 
@@ -52,12 +74,8 @@ Supported lifts: bench press, squat, deadlift, overhead press, barbell row, hip 
 - Leaderboards run **this week** (from Monday) or **this month**. You can rank by:
   - **Points:** 1 point per 10 kcal burned, so every sport counts;
   - **Minutes**, **Km** or **Workouts**;
-  - **Medals:** the medals of your best lifts in that period (Bronze 1 … Diamond 5).
-- The **Feed** shows everyone's workouts, routes and medals. Tap 👏 to give kudos.
-
-## 7. Badges
-
-There are 16 badges, for example: first workout, 10 and 50 workouts, 3- and 7-day streaks, 10 km, half marathon, early bird, night owl, 5 sports, snow day, 100 points in a week, and first, silver, gold and diamond medals.
+  - **Tiers:** the tiers of your best lifts in that period (Bronze 1 … Symmetric 8).
+- The **Feed** shows everyone's workouts, routes and tiers. Tap 👏 to give kudos.
 
 ## Privacy
 

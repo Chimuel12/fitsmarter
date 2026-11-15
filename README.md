@@ -8,8 +8,9 @@ Track workouts, close your rings and compete with friends. It is an installable 
 - **Record:** GPS tracking for runs, walks, rides and hikes, with a live map, pace and distance. Timers for gym, HIIT, yoga, swim, snowboard and more. Workouts can also be logged by hand.
 - **Feed:** your friends' workouts with route maps and kudos.
 - **Compete:** groups joined by invite code or link. Leaderboards with a podium, by week or month, ranked by points, minutes, km or workouts.
-- **Strength medals:** log sets (kg × reps) to get an estimated 1RM. It is compared with standards for your sex, weight, age and height. Top 50% earns 🥉 Bronze, top 30% 🥈 Silver, top 15% 🥇 Gold, top 5% 🏆 Platinum and top 1% 💎 Diamond.
-- **You:** totals, 16 badges, medals per lift, daily goals and body data.
+- **Body hub:** a front and back muscle map in which each muscle shows its tier, from Bronze (top 90%) to Symmetric (top 5%). Tiers come from your best set as a 10-rep equivalent, compared with reference weights for gym-goers and adjusted for body weight, sex, age and height.
+- **Exercise library:** 80 exercises with original animated figures. It covers free weights, bodyweight moves, Technogym Selection and Pure Strength machines, and cable-station exercises. The set logger has Set · Previous · kg · Reps · ✓ columns.
+- **You:** totals, the body hub, daily goals and body data.
 
 A quick guide is in [GUIDE.md](GUIDE.md). In the app, tap **?** to start it.
 
@@ -24,6 +25,7 @@ To compete for real, follow [SETUP.md](SETUP.md).
 ## Files
 
 - `index.html`, `styles.css`, `app.js`: the user interface.
+- `strength.js`: tier engine and exercise library. `body.js`: muscle map and animations. `gym.js`: hub, picker and set logger.
 - `store.js`: the data layer. `LocalStore` serves demo mode and `FirebaseStore` handles Auth and Firestore.
 - `firebase-config.js`: your Firebase web config, or `null` for demo mode.
 - `firestore.rules`: the database security rules.

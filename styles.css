@@ -243,3 +243,71 @@ main{max-width:620px;margin:0 auto;padding:18px 16px calc(110px + env(safe-area-
 .tour-card .tc-nav button{font:600 14px/1 var(--f);border:0;border-radius:999px;padding:10px 16px}
 .tour-card .tc-prev{background:rgba(255,255,255,.1);color:#fff}
 .tour-card .tc-next{background:#fff;color:#111}
+
+/* ===== body hub, tiers, set logger, exercise library ===== */
+:root{--fig:#C9CFD9;--figFar:#8F98A6;--figHi:#4C8DFF;--eq:#7A8291;--eqdark:#3A404A;--plate:#2A2F38;--bodyoff:#3B4250;--bodyskin:#566072}
+.gem{display:block;flex:0 0 auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))}
+.tchip{margin-left:auto;flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;font:700 11.5px/1 var(--f);padding:5px 9px 5px 6px;border-radius:999px;color:#fff;background:linear-gradient(135deg,color-mix(in srgb,var(--tc) 55%,#11131a),color-mix(in srgb,var(--tc2) 70%,#11131a));white-space:nowrap}
+.hubwrap{border-radius:28px;overflow:hidden;box-shadow:var(--shadow)}
+.hub{background:radial-gradient(120% 60% at 50% 30%,#1B2A55 0%,#0B1022 70%);color:#E9EEF8;padding:16px 14px 14px;display:flex;flex-direction:column;gap:12px}
+.hub-tiers{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;text-align:center}
+.hub-tiers div{display:flex;flex-direction:column;align-items:center;gap:3px;opacity:.85}
+.hub-tiers div.on{opacity:1;transform:scale(1.15)}
+.hub-tiers small{font:700 9.5px/1 var(--f);color:#AFC0E0}
+.hub-stage{position:relative;display:flex;justify-content:center;padding:6px 0}
+.hub-body{width:min(58%,250px)}
+.bodysvg{width:100%;display:block;filter:drop-shadow(0 0 22px rgba(76,141,255,.25))}
+.bodysvg .skin{fill:var(--bodyskin)}
+.bodysvg .mus path{stroke:#0B1022;stroke-width:1.1;cursor:pointer;transition:filter .2s}
+.bodysvg .mus path:hover{filter:brightness(1.2)}
+.hub-call{position:absolute;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;max-width:26%;z-index:1}
+.hub-call b{font:800 11px/1 var(--f);letter-spacing:.06em;text-transform:uppercase;color:#7FB2FF}
+.hub-call small{font:600 11px/1.25 var(--f);color:#C9D4EA}
+.hub-call.tl{left:2%;top:8%}.hub-call.tr{right:2%;top:8%}.hub-call.bl{left:2%;bottom:6%}.hub-call.br{right:2%;bottom:6%}
+.seg.dark{background:rgba(255,255,255,.08)}.seg.dark button{color:#AFC0E0}.seg.dark button[aria-pressed="true"]{background:#fff;color:#0B1022}
+.hub-list{display:flex;flex-direction:column;gap:6px}
+.hub-row{display:flex;align-items:center;gap:10px;border:0;background:rgba(255,255,255,.06);border-radius:14px;padding:10px 12px;color:inherit;text-align:left}
+.hub-row div{min-width:0;flex:1}.hub-row b{display:block;font-size:14px}
+.hub-row div small{color:#9FB0CF;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.hub-row span{font:700 13px/1.1 var(--f);text-align:right}.hub-row span small{display:block;font-weight:500;color:#9FB0CF}
+.hub-empty{color:#B8C5DE;font-size:14px;text-align:center;padding:4px 10px 8px}
+/* animated figures */
+.exanim{display:block}
+.exanim.thumb{width:44px;height:44px;flex:0 0 auto;border-radius:12px;background:#11151F}
+.exanim.big{width:min(100%,360px);height:auto;margin:0 auto}
+/* set logger */
+.gx{display:flex;flex-direction:column;gap:12px}
+.gx-stage{position:relative;background:#06080D;border-radius:22px;padding:8px;display:flex;justify-content:center}
+.gx-stage.empty{flex-direction:column;align-items:center;gap:12px;padding:40px 16px;color:#AEB7C6;text-align:center}
+.gx-line{position:absolute;left:12px;top:10px;font:600 11px/1 var(--f);color:#9AA3B2;background:rgba(255,255,255,.08);padding:6px 9px;border-radius:999px}
+.gx-chips{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.gx-chip{position:relative;flex:0 0 auto;width:58px;height:58px;border-radius:50%;border:2px solid transparent;background:#11151F;padding:5px;display:flex;align-items:center;justify-content:center}
+.gx-chip .exanim.thumb{width:44px;height:44px;border-radius:50%}
+.gx-chip.on{border-color:var(--accent)}
+.gx-chip i{position:absolute;right:-2px;bottom:-2px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font:700 11px/20px var(--f);font-style:normal;text-align:center}
+.gx-chip.plus{border:2px dashed var(--line);background:transparent;color:var(--muted);font-size:26px}
+.gx-head{display:flex;align-items:center;gap:10px}
+.gx-head h3{font-size:22px;letter-spacing:-.03em}
+.gx-head small{color:var(--muted);font-size:12px}
+.gx-x{border:0;background:var(--soft);width:30px;height:30px;border-radius:50%;color:var(--muted);flex:0 0 auto}
+.gx-sets{width:100%;border-collapse:separate;border-spacing:0 6px;font-variant-numeric:tabular-nums}
+.gx-sets th{font:600 12px/1 var(--f);color:var(--muted);text-align:center;padding:0 4px}
+.gx-sets th:nth-child(2){text-align:left}
+.gx-sets td{padding:6px 4px;text-align:center;background:var(--soft)}
+.gx-sets td:first-child{border-radius:12px 0 0 12px;font-weight:700;width:34px}
+.gx-sets td:last-child{border-radius:0 12px 12px 0;width:46px}
+.gx-sets td.pv{text-align:left;color:var(--muted);font-size:13px;white-space:nowrap}
+.gx-sets input{width:62px;border:0;border-radius:10px;padding:9px 6px;text-align:center;background:var(--panel);font-weight:700;outline:none}
+.gx-sets input:focus{box-shadow:0 0 0 2px var(--accent)}
+.gx-sets tr.done td{background:color-mix(in srgb,var(--accent) 22%,var(--panel))}
+.chk{width:34px;height:34px;border-radius:50%;border:0;background:var(--panel);color:var(--muted);font:800 15px/1 var(--f)}
+.chk[aria-pressed="true"]{background:var(--accent);color:#fff}
+.gx-next{display:flex;align-items:center;gap:6px;font-size:13px;flex-wrap:wrap}
+.live.gym .gymlog{padding-top:calc(14px + env(safe-area-inset-top,0px))}
+.live.gym .lpanel{gap:10px;padding-top:14px}
+.live.gym .big{font-size:38px}
+/* exercise picker */
+.exlist{max-height:52vh;overflow:auto}
+.exrow{border:0;background:none;width:100%;text-align:left;color:inherit}
+.eqtag{font:600 11px/1 var(--f);color:var(--muted);background:var(--soft);padding:5px 8px;border-radius:999px;flex:0 0 auto}
+@media (max-width:420px){.hub-tiers small{font-size:8.5px}.hub-call small{font-size:10px}.gx-sets input{width:54px}.gx-sets td.pv{font-size:12px}}
