@@ -24,7 +24,7 @@ Under **Goals & profile**, fill in:
 
 1. Pick a sport.
 2. **Run, Walk, Ride or Hike** use GPS: a live map, distance, pace and calories. Keep the app open on screen while you move.
-3. **Strength** opens a set logger. For each set, choose the exercise and enter the kg (per hand for dumbbells) and reps, then tap **Add set**. You see your medal straight away.
+3. **Strength** opens the set logger (see below). Your tier shows as soon as you complete a set.
 4. Other sports run a timer. You can also use **Log manually** for workouts you did earlier.
 5. Tap **Finish**, give it a title if you like, and tap **Save**.
 
