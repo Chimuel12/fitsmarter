@@ -12,7 +12,7 @@ Open <https://chimuel12.github.io/fitsmarter/> on your phone. Tap **?** in the t
 Under **Goals & profile**, fill in:
 
 - daily goals for **Move** (kcal), **Exercise** (minutes) and **Distance** (km);
-- **weight, height, sex and birth year**. Calories and strength medals depend on these.
+- **weight, height, sex and birth year**. Calories and strength tiers depend on these.
 
 ## 3. Today
 
